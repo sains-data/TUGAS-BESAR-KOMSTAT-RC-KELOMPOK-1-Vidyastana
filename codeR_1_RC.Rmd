@@ -1,0 +1,168 @@
+---
+title: "Untitled"
+author: "Naufall"
+date: "2025-11-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# ========================================================
+# 1. IMPORT DATA
+# ========================================================
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(boot)
+
+data <- read_excel("C:/Tugas-tugas/TUBES KOMSTAT/IPLM_2024.xlsx")
+
+# Ubah ke numeric
+x <- as.numeric(data$IPLM_2024)
+
+head(data)
+```
+
+```{r}
+# ========================================================
+# 2. STATISTIK SEBELUM BOOTSTRAP
+# ========================================================
+mean_before <- mean(x, na.rm = TRUE)
+median_before <- median(x, na.rm = TRUE)
+sd_before <- sd(x, na.rm = TRUE)
+
+# Tampilkan hasil
+cat("===== STATISTIK SEBELUM BOOTSTRAP =====\n")
+cat("Mean   :", mean_before, "\n")
+cat("Median :", median_before, "\n")
+cat("SD     :", sd_before, "\n\n")
+```
+
+```{r}
+# ========================================================
+# 3. VISUALISASI STATISTIK SEBELUM BOOTSTRAP
+# ========================================================
+
+# --- Histogram + Density ---
+hist(x, breaks = 15, probability = TRUE,
+     main="Histogram + Density IPLM (Sebelum Bootstrap)",
+     xlab="IPLM", col="skyblue")
+lines(density(x), col="darkblue", lwd=2)
+
+# --- Boxplot ---
+boxplot(x, main="Boxplot IPLM", col="pink", horizontal = TRUE)
+```
+
+```{r}
+# ========================================================
+# 4. BOOTSTRAP RESAMPLING
+# ========================================================
+set.seed(123)  
+B <- 5000      
+
+# Menyimpan hasil bootstrap
+boot_mean  <- numeric(B)
+boot_median <- numeric(B)
+boot_sd <- numeric(B)
+
+for(i in 1:B){
+  sample_i <- sample(x, size = length(x), replace = TRUE)
+  
+  boot_mean[i]  <- mean(sample_i)
+  boot_median[i] <- median(sample_i)
+  boot_sd[i] <- sd(sample_i)
+}
+```
+
+```{r}
+# =======================================
+# 5. Hasil Statistik Bootstrap
+# =======================================
+cat("=== STATISTIK SETELAH BOOTSTRAP ===\n")
+cat("Mean Bootstrap :", mean(boot_mean), "\n")
+cat("Median Bootstrap :", mean(boot_median), "\n")
+cat("SD Bootstrap :", mean(boot_sd), "\n\n")
+```
+
+```{r}
+# =======================================
+# 6. Visualisasi Distribusi Bootstrap
+# =======================================
+par(mfrow=c(3,1))
+
+hist(boot_mean, main="Bootstrap Distribution of Mean", xlab="Mean", breaks=25)
+abline(v = mean(x), col="red", lwd=2)
+
+hist(boot_median, main="Bootstrap Distribution of Median", xlab="Median", breaks=25)
+abline(v = median(x), col="red", lwd=2)
+
+hist(boot_sd, main="Bootstrap Distribution of SD", xlab="SD", breaks=25)
+abline(v = sd(x), col="red", lwd=2)
+
+par(mfrow=c(1,1))
+```
+
+```{r}
+# =======================================
+# 7. Confidence Interval (Percentile Method)
+# =======================================
+CI_mean   <- quantile(boot_mean, c(0.025, 0.975))
+CI_median <- quantile(boot_median, c(0.025, 0.975))
+CI_sd     <- quantile(boot_sd, c(0.025, 0.975))
+
+cat("=== 95% Confidence Interval ===\n")
+cat("Mean CI   :", CI_mean, "\n")
+cat("Median CI :", CI_median, "\n")
+cat("SD CI     :", CI_sd, "\n")
+
+```
+
+```{r}
+# ========================================================
+# 8. CI PLOT (ERROR BAR)
+# ========================================================
+
+mean_after   <- mean(boot_mean)
+median_after <- mean(boot_median)
+sd_after     <- mean(boot_sd)
+
+CI_df <- data.frame(
+  Statistik = c("Mean", "Median", "SD"),
+  Estimate = c(mean_after, median_after, sd_after),
+  Lower = c(CI_mean[1], CI_median[1], CI_sd[1]),
+  Upper = c(CI_mean[2], CI_median[2], CI_sd[2])
+)
+
+ggplot(CI_df, aes(x=Statistik, y=Estimate)) +
+  geom_point(size=3, color="blue") +
+  geom_errorbar(aes(ymin=Lower, ymax=Upper), width=.1, color="red") +
+  theme_minimal() +
+  labs(title="Confidence Interval (95%) Hasil Bootstrap",
+       y="Nilai Statistik")
+```
+
+```{r}
+# ========================================================
+# 9. VISUALISASI PERBANDINGAN SEBELUM vs SETELAH BOOTSTRAP
+# ========================================================
+
+stats_compare <- data.frame(
+  Statistik = c("Mean", "Median", "SD"),
+  Before = c(mean_before, median_before, sd_before),
+  After = c(mean_after, median_after, sd_after)
+)
+
+# Barplot comparison
+barplot(t(as.matrix(stats_compare[,2:3])),
+        beside = TRUE, col = c("lightblue", "pink"),
+        names.arg = stats_compare$Statistik,
+        main = "Perbandingan Statistik Sebelum vs Setelah Bootstrap",
+        ylab = "Nilai")
+legend("topright", legend=c("Sebelum", "Setelah"), 
+       fill=c("lightblue", "pink"))
+
+
+```
