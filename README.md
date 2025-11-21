@@ -1,3 +1,5 @@
+<div align="justify">
+
 # 📊 Analisis Indeks Pembangunan Literasi Masyarakat (IPLM) 2024 Menggunakan Metode Bootstrap
 
 Repository ini berisi kode dan analisis statistik terkait pengukuran **Indeks Pembangunan Literasi Masyarakat (IPLM) Provinsi Sumatera Tahun 2024** menggunakan metode **statistika deskriptif** dan **bootstrap resampling**.  
