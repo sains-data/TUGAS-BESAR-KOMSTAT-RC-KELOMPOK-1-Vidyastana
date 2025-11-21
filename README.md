@@ -29,6 +29,14 @@ Proyek ini juga menyertakan berbagai visualisasi seperti histogram, density plot
 
 ---
 
+## 🛠️ Tools & Teknologi
+
+- **R** untuk analisis data  
+- **Git & GitHub** untuk kolaborasi  dan repository
+- **Markdown** untuk dokumentasi  
+- **RStudio / Google Colab** sebagai lingkungan kerja  
+
+
 ## 👥 Anggota Tim
 
 - **Nabyla Sharfina** (123450008)  
