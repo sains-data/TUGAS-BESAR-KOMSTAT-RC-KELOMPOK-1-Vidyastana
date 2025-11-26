@@ -21,10 +21,9 @@ Proyek ini juga menyertakan berbagai visualisasi seperti histogram, density plot
 
 ## 🧠 Tujuan
 
-- Menghasilkan estimasi IPLM yang lebih akurat menggunakan metode bootstrap.  
-- Menyajikan gambaran distribusi literasi masyarakat di Provinsi Sumatera.  
-- Membandingkan parameter statistik sebelum dan sesudah bootstrap.  
-- Mendukung pengambilan keputusan berbasis data dalam evaluasi literasi masyarakat.
+- Mengevaluasi efektivitas metode bootstrap dalam menghasilkan estimasi Indeks Pembangunan Literasi Masyarakat (IPLM) dengan membandingkannya terhadap hasil estimasi yang diperoleh tanpa menggunakan dan menggunakan metode bootstrap.
+- Menyediakan gambaran distribusi indeks literasi masyarakat berdasarkan sampel survei tahun 2024, lengkap dengan interval kepercayaan.
+- Memberikan arahan mengenai potensi penggunaan metode bootstrap sebagai pendekatan analitis untuk mendukung proses perencanaan dan pengembangan program literasi masyarakat di berbagai wilayah.
 
 ---
 
