@@ -1,0 +1,280 @@
+```{r}
+# ========================================================
+# 1. IMPORT DATA
+# ========================================================
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(boot)
+library(tidyr)
+
+data <- read_excel("C:/Tugas-tugas/TUBES KOMSTAT/IPLM_2024.xlsx")
+
+# Ubah ke numeric
+x <- as.numeric(data$IPLM_2024)
+
+head(data)
+```
+
+```{r}
+# ========================================================
+# 2. STATISTIK SEBELUM BOOTSTRAP
+# ========================================================
+mean_before <- mean(x, na.rm = TRUE)
+median_before <- median(x, na.rm = TRUE)
+sd_before <- sd(x, na.rm = TRUE)
+
+# Tampilkan hasil
+cat("===== STATISTIK SEBELUM BOOTSTRAP =====\n")
+cat("Mean   :", mean_before, "\n")
+cat("Median :", median_before, "\n")
+cat("SD     :", sd_before, "\n\n")
+```
+
+```{r}
+# ========================================================
+# 3. VISUALISASI STATISTIK SEBELUM BOOTSTRAP (WARNA KONSISTEN)
+# ========================================================
+
+# Histogram + Density IPLM (ggplot2) 
+ggplot(data.frame(x), aes(x = x)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 bins = 15,
+                 fill = "#E69F00",       
+                 color = "white",
+                 alpha = 0.8) +
+  geom_density(color = "#009E73",       
+               lwd = 1.2) +
+
+  geom_vline(aes(xintercept = mean_before), 
+             color = "#D55E00", linetype = "dashed", lwd = 0.8) +
+  geom_vline(aes(xintercept = median_before), 
+             color = "#56B4E9", linetype = "dotted", lwd = 0.8) + 
+
+  labs(title = "Distribusi Nilai IPLM (Indeks Pembangunan Literasi Masyarakat)",
+       subtitle = paste("Mean (Garis Putus-putus):", round(mean_before, 3), 
+                        "| Median (Garis Titik):", round(median_before, 3)),
+       x = "Nilai IPLM",
+       y = "Kepadatan") +
+  theme_minimal() + 
+  theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 14),
+        plot.subtitle = element_text(hjust = 0.5, size = 10, color = "darkgray"),
+        panel.grid.minor = element_blank())
+
+# --- Boxplot IPLM (ggplot2) ---
+ggplot(data.frame(x), aes(y = x, x = 1)) +
+  geom_boxplot(fill = "#F0F0F0",        
+               color = "black",
+               lwd = 1,
+               width = 0.3) +
+  geom_jitter(width = 0.05, alpha = 0.5, color = "#56B4E9") + 
+  labs(title = "Boxplot Nilai IPLM",
+       subtitle = paste("Median:", round(median_before, 3)),
+       y = "Nilai IPLM",
+       x = "") +
+  coord_flip() +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        axis.text.y = element_blank(), 
+        axis.ticks.y = element_blank())
+```
+
+```{r}
+# ========================================================
+# 4. BOOTSTRAP RESAMPLING
+# ========================================================
+set.seed(123)  
+B <- 5000      
+
+# Menyimpan hasil bootstrap
+boot_mean  <- numeric(B)
+boot_median <- numeric(B)
+boot_sd <- numeric(B)
+
+for(i in 1:B){
+  sample_i <- sample(x, size = length(x), replace = TRUE)
+  
+  boot_mean[i]  <- mean(sample_i)
+  boot_median[i] <- median(sample_i)
+  boot_sd[i] <- sd(sample_i)
+}
+```
+
+```{r}
+# =======================================
+# 5. Hasil Statistik Bootstrap & Persiapan Data Frame
+# =======================================
+mean_after   <- mean(boot_mean)
+median_after <- mean(boot_median)
+sd_after     <- mean(boot_sd)
+
+cat("=== STATISTIK SETELAH BOOTSTRAP ===\n")
+cat("Mean Bootstrap :", round(mean_after, 4), "\n")
+cat("Median Bootstrap :", round(median_after, 4), "\n")
+cat("SD Bootstrap :", round(sd_after, 4), "\n\n")
+
+boot_df <- data.frame(
+  Value = c(boot_mean, boot_median, boot_sd),
+  Statistic = factor(rep(c("Mean", "Median", "SD"), each = B),
+                     levels = c("Mean", "Median", "SD")) 
+)
+
+original_stats <- data.frame(
+  Statistic = factor(c("Mean", "Median", "SD"), levels = c("Mean", "Median", "SD")),
+  Original = c(mean_before, median_before, sd_before)
+)
+
+CI_mean   <- quantile(boot_mean, c(0.025, 0.975))
+CI_median <- quantile(boot_median, c(0.025, 0.975))
+CI_sd     <- quantile(boot_sd, c(0.025, 0.975))
+
+CI_df <- data.frame(
+  Statistik = c("Mean", "Median", "SD"),
+  Estimate = c(mean_after, median_after, sd_after),
+  Lower = c(CI_mean[1], CI_median[1], CI_sd[1]),
+  Upper = c(CI_mean[2], CI_median[2], CI_sd[2])
+)
+
+stats_compare <- data.frame(
+  Statistik = c("Mean", "Median", "SD"),
+  Before = c(mean_before, median_before, sd_before),
+  After = c(mean_after, median_after, sd_after)
+)
+```
+
+```{r}
+# ========================================================
+# 6. VISUALISASI PERBANDINGAN DISTRIBUSI (DATA ASLI vs BOOTSTRAP MEAN)
+# ========================================================
+
+boot_mean_df <- data.frame(Value = boot_mean)
+
+ggplot(data.frame(x), aes(x = x)) +
+  # Density Plot Data Asli (Lebar dan rendah)
+  geom_density(aes(y = after_stat(density), color = "Data Asli (IPLM)"), 
+               lwd = 1.2, fill = "#56B4E9", alpha = 0.2) + 
+  # Density Plot Distribusi Mean Bootstrap (Sempit dan tinggi)
+  geom_density(data = boot_mean_df, aes(x = Value, color = "Mean Bootstrap"), 
+               lwd = 1.2, fill = "#E69F00", alpha = 0.2) +
+  geom_vline(aes(xintercept = mean_before, color = "Mean Asli"), linetype = "dashed", lwd = 1) +
+  
+  scale_color_manual(name = "Distribusi", 
+                     values = c("Data Asli (IPLM)" = "#56B4E9", 
+                               "Mean Bootstrap" = "#E69F00",
+                               "Mean Asli" = "#D55E00")) + 
+  scale_fill_identity() + 
+  
+  labs(title = "Perbandingan Distribusi Data Asli vs. Distribusi Mean Bootstrap",
+       subtitle = "Menunjukkan stabilnya Estimasi Bootstrap",
+       x = "Nilai IPLM",
+       y = "Kepadatan") +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+```
+
+```{r}
+# =======================================
+# 7. Visualisasi Distribusi Bootstrap 
+# =======================================
+ggplot(boot_df, aes(x = Value, fill = Statistic)) +
+  geom_histogram(bins = 30, color = "white", alpha = 0.8) +
+  geom_vline(data = original_stats, aes(xintercept = Original),
+             color = "#D55E00", linetype = "dashed", size = 1) + 
+  facet_wrap(~ Statistic, scales = "free", ncol = 1) +
+  scale_fill_manual(values = c("Mean" = "#E69F00",        
+                               "Median" = "#56B4E9",       
+                               "SD" = "#009E73")) +        
+  labs(title = "Distribusi Sampling Bootstrap (N = 5000)",
+       x = "Nilai Statistik",
+       y = "Frekuensi") +
+  theme_bw() + 
+  theme(legend.position = "none",
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        strip.background = element_rect(fill = "#F0F0F0"),
+        panel.grid.major.y = element_line(linetype = "dotted", color = "gray"))
+```
+
+```{r}
+# =======================================
+# 8. Confidence Interval (Percentile Method)
+# =======================================
+cat("=== 95% Confidence Interval ===\n")
+cat("Mean CI   :", CI_mean, "\n")
+cat("Median CI :", CI_median, "\n")
+cat("SD CI     :", CI_sd, "\n")
+
+```
+
+```{r}
+# ======================
+# 9. CI PLOT (ERROR BAR)
+# ======================
+
+CI_df <- data.frame(
+  Statistik = c("Mean", "Median", "SD"),
+  Estimate = c(mean_after, median_after, sd_after),
+  Lower = c(CI_mean[1], CI_median[1], CI_sd[1]),
+  Upper = c(CI_mean[2], CI_median[2], CI_sd[2])
+)
+
+ggplot(CI_df, aes(x = Statistik, y = Estimate)) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), 
+                width = 0.2,            
+                color = "#009E73",     
+                lwd = 1.2) +            
+  
+  geom_point(size = 5, color = "black") + 
+  geom_text(aes(label = round(Estimate, 3)), 
+            vjust = -1.5,
+            color = "#E69F00",          
+            size = 4, 
+            fontface = "bold") +
+  geom_text(aes(y = Lower, label = round(Lower, 3)), 
+            hjust = 1.75,                
+            color = "#D55E00",         
+            size = 3.5) +
+  geom_text(aes(y = Upper, label = round(Upper, 3)), 
+            hjust = -1,               
+            color = "#D55E00", 
+            size = 3.5) +
+  
+  labs(title = "95% Confidence Interval Statistik (Bootstrap Percentile)",
+       subtitle = "Titik Hitam: Estimasi Bootstrap | Bar Teal: 95% CI",
+       y = "Nilai Statistik",
+       x = "") +
+  
+  theme_bw() + 
+  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())
+```
+
+```{r}
+# ========================================================
+# 10. VISUALISASI PERBANDINGAN SEBELUM vs SETELAH BOOTSTRAP
+# ========================================================
+stats_long <- pivot_longer(stats_compare, 
+                           cols = c(Before, After), 
+                           names_to = "Metode", 
+                           values_to = "Nilai")
+
+stats_long$Metode <- factor(stats_long$Metode, levels = c("Before", "After"))
+
+ggplot(stats_long, aes(x = Statistik, y = Nilai, fill = Metode)) +
+  geom_bar(stat = "identity", position = position_dodge(), color = "white") +
+  geom_text(aes(label = round(Nilai, 3)), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5, 
+            size = 3.5) + 
+  scale_fill_manual(values = c("Before" = "#0072B2", "After" = "#D55E00"),
+                    labels = c("Sebelum Bootstrap", "Setelah Bootstrap")) +
+  labs(title = "Perbandingan Nilai Statistik Sebelum dan Setelah Bootstrap",
+       x = "Statistik",
+       y = "Nilai",
+       fill = "Estimasi") +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+```
